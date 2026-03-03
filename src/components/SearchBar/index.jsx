@@ -1,10 +1,11 @@
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { searchBooks } from "../../services/bookService";
 
 const SearchBar = ({ onSearch }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (query.length < 4) {
@@ -13,18 +14,29 @@ const SearchBar = ({ onSearch }) => {
     }
 
     const timer = setTimeout(async () => {
-      const results = await searchBooks(query);
-      setSuggestions(results.slice(0, 6));
+      const results = await searchBooks(query, 6);
+      setSuggestions(results);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [query]);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setSuggestions([]);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSelect = (book) => {
-    setQuery(book.titulo)
-    setSuggestions([]) 
-    onSearch(book.titulo)
-  }
+    setQuery(book.titulo);
+    setSuggestions([]);
+    onSearch(book.titulo);
+  };
 
   const handleSearch = () => {
     if (query.trim()) {
@@ -36,8 +48,8 @@ const SearchBar = ({ onSearch }) => {
     if (e.key === "Enter") handleSearch();
   };
 
-    return (
-    <div className="relative w-[30%] mx-auto mt-8">
+  return (
+    <div ref={containerRef} className="relative w-[30%] mx-auto mt-8">
       <div className="flex bg-white rounded-full px-4 py-2">
         <input
           type="text"
@@ -48,7 +60,9 @@ const SearchBar = ({ onSearch }) => {
           className="w-full outline-none bg-transparent"
         />
         <button onClick={handleSearch} className="cursor-pointer outline-none">
-          <Search size={20} />
+          <div className="bg-[#326589] p-2 rounded-full">
+            <Search className="text-white w-5 h-5" />
+          </div>
         </button>
       </div>
 
@@ -61,7 +75,11 @@ const SearchBar = ({ onSearch }) => {
               className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer"
             >
               {book.capa && (
-                <img src={book.capa} alt={book.titulo} className="w-8 h-12 object-cover rounded" />
+                <img
+                  src={book.capa}
+                  alt={book.titulo}
+                  className="w-8 h-12 object-cover rounded"
+                />
               )}
               <div>
                 <p className="font-medium text-sm">{book.titulo}</p>
@@ -72,7 +90,7 @@ const SearchBar = ({ onSearch }) => {
         </ul>
       )}
     </div>
-  )
+  );
 };
 
 export default SearchBar;
